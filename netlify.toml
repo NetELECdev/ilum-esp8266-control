@@ -1,7 +1,9 @@
 [build]
-command = "npm install && npm run build"
+  command = "npm run build"
+  # Apuntamos a la salida pública estándar de Nitro
+  publish = ".output/public"
 
 [build.environment]
-NODE_VERSION = "22"
-NETLIFY_USE_PNPM = "false"
-NPM_FLAGS = "--legacy-peer-deps"
+  NODE_VERSION = "22"
+  NETLIFY_USE_PNPM = "false"
+  NPM_FLAGS = "--legacy-peer-deps"

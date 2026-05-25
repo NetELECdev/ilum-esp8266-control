@@ -1,3 +1,0 @@
-/_nuxt/* /_nuxt/:splat 200
-/assets/* /assets/:splat 200
-/* /.netlify/functions/server 200
