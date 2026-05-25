@@ -12,7 +12,6 @@ export default defineNuxtConfig({
   },
 
   nitro: {
-    # Usamos el preset nativo para funciones serverless estándar de Netlify
     preset: "netlify-server" 
   }
 })
