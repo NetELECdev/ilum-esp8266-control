@@ -1,6 +1,8 @@
 [build]
   command = "npm run build"
-  publish = ".output/public"
+  # Dejar la raíz o public le dice a Netlify que no busque un bundle estático tradicional,
+  # permitiendo que el conector de Nitro configure las funciones serverless de forma interna.
+  publish = "public" 
 
 [build.environment]
   NODE_VERSION = "22"
