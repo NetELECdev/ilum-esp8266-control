@@ -1,7 +1,6 @@
 [build]
   command = "npm run build"
-  # Apuntamos a la salida pública estándar de Nitro
-  publish = ".output/public"
+  publish = ".netlify/dist"
 
 [build.environment]
   NODE_VERSION = "22"
