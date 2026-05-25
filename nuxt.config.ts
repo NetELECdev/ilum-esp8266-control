@@ -9,9 +9,5 @@ export default defineNuxtConfig({
     head: {
       title: 'Control Iluminación con ESP8266'
     }
-  },
-
-  nitro: {
-    preset: "netlify-server" 
   }
 })
