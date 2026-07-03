@@ -8,7 +8,7 @@
       <div class="header">
         <div class="sensor-left">
           <span class="sensor-icon">🌡️</span>
-          <span class="sensor-value">{{ temperatura }}</span>
+          <span class="sensor-value">{{ mqtt.temperatura.value }}</span>
           <span class="sensor-unit">°C</span>
         </div>
         
@@ -19,14 +19,14 @@
             class="logo-icon" 
           />
           <h2 class="title">Control Iluminación</h2>
-          <div class="status-badge" :class="estadoESP === 'ESP ONLINE' ? 'online' : 'offline'">
-            {{ estadoESP === 'ESP ONLINE' ? '● ONLINE' : '● OFFLINE' }}
+          <div class="status-badge" :class="mqtt.isConnected.value ? 'online' : 'offline'">
+            {{ mqtt.isConnected.value ? '● ONLINE' : '● OFFLINE' }}
           </div>
         </div>
         
         <div class="sensor-right">
           <span class="sensor-icon">💧</span>
-          <span class="sensor-value">{{ humedad }}</span>
+          <span class="sensor-value">{{ mqtt.humedad.value }}</span>
           <span class="sensor-unit">%</span>
         </div>
       </div>
@@ -34,23 +34,28 @@
       <!-- Reloj digital -->
       <div class="clock">{{ hora }}</div>
 
-      <!-- Controles LEDs -->
+      <!-- Controles LUZ 01-04 -->
       <div :class="['glass-buttons', panelActual]">
         <button 
-          v-for="pin in ['D5', 'D6', 'D7', 'D8']" 
-          :key="pin"
-          :class="{ active: ledStates[pin] }"
-          @click="toggleLED(pin)"
+          v-for="n in 4" 
+          :key="n"
+          :class="{ 
+            active: mqtt[`luz0${n}`].value, 
+            pending: mqtt.pending.value === `luz0${n}` 
+          }"
+          @click="mqtt.toggleLuz(n)"
         >
-          LED {{ pin }}
-          <span class="led-status">{{ ledStates[pin] ? '🟢' : '⚪' }}</span>
+          <span>LUZ 0{{ n }}</span>
+          <span class="led-status">
+            {{ mqtt.pending.value === `luz0${n}` ? '⏳' : (mqtt[`luz0${n}`].value ? '🟢' : '⚪') }}
+          </span>
         </button>
       </div>
 
       <!-- Controles adicionales -->
       <div class="action-buttons">
-        <button class="action-btn" @click="encenderTodos">💡 TODOS ON</button>
-        <button class="action-btn off" @click="apagarTodos">🛑 TODOS OFF</button>
+        <button class="action-btn" @click="mqtt.todasOn">💡 TODOS ON</button>
+        <button class="action-btn off" @click="mqtt.todasOff">🛑 TODOS OFF</button>
       </div>
 
       <!-- Toggle modo -->
@@ -64,22 +69,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useMQTT } from '../../composables/useMQTT'
 
-const { connect, publish, temperatura, humedad, estadoESP, isConnected } = useMQTT()
-
-const ledStates = reactive({
-  D5: false,
-  D6: false,
-  D7: false,
-  D8: false
-})
+const mqtt = useMQTT()
 
 const hora = ref('--:--:--')
 const modo = ref('oscuro')
 
-// Fondos según modo (TODAS LAS URLs VERIFICADAS)
 const fondosOscuro = [
   'https://fbsugjqjbltvvyywfsal.supabase.co/storage/v1/object/public/product-images/Fondo1.jpg',
   'https://fbsugjqjbltvvyywfsal.supabase.co/storage/v1/object/public/product-images/Fondo2.jpg'
@@ -90,36 +87,12 @@ const fondosClaro = [
   'https://fbsugjqjbltvvyywfsal.supabase.co/storage/v1/object/public/product-images/Blanca1.jpg'
 ]
 
-// Panel background (fondo_na2 tiene error 400, uso alternativa)
 const paneles = ['na1', 'na2']
-const fondoNa2Alternativo = 'https://fbsugjqjbltvvyywfsal.supabase.co/storage/v1/object/public/product-images/Fondo1.jpg'
-
 const fondoActual = ref(fondosOscuro[0])
 const panelActual = ref(paneles[0])
 
-// Intervalos
 let intervalHora = null
 let intervalFondo = null
-
-function toggleLED(pin) {
-  const newState = !ledStates[pin]
-  ledStates[pin] = newState
-  publish(`casa/${pin}`, newState ? 'ON' : 'OFF')
-}
-
-function encenderTodos() {
-  Object.keys(ledStates).forEach(pin => {
-    ledStates[pin] = true
-    publish(`casa/${pin}`, 'ON')
-  })
-}
-
-function apagarTodos() {
-  Object.keys(ledStates).forEach(pin => {
-    ledStates[pin] = false
-    publish(`casa/${pin}`, 'OFF')
-  })
-}
 
 function cambiarModo() {
   modo.value = modo.value === 'oscuro' ? 'claro' : 'oscuro'
@@ -127,21 +100,18 @@ function cambiarModo() {
 }
 
 onMounted(() => {
-  connect()
+  mqtt.connect()
   
-  // Reloj
   intervalHora = setInterval(() => {
     const now = new Date()
     hora.value = now.toLocaleTimeString('es-ES')
   }, 1000)
   
-  // Rotación de fondos y paneles cada 15 minutos
   let i = 0, j = 0
   intervalFondo = setInterval(() => {
     const listaFondos = modo.value === 'oscuro' ? fondosOscuro : fondosClaro
     i = (i + 1) % listaFondos.length
     fondoActual.value = listaFondos[i]
-    
     j = (j + 1) % paneles.length
     panelActual.value = paneles[j]
   }, 15 * 60 * 1000)
@@ -154,7 +124,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Variables CSS */
 .glass-container {
   --text-color: #ffffff;
   --bg-glass: rgba(0, 0, 0, 0.5);
@@ -226,20 +195,9 @@ onUnmounted(() => {
   min-width: 85px;
 }
 
-.sensor-icon {
-  font-size: 24px;
-}
-
-.sensor-value {
-  font-size: 22px;
-  font-weight: bold;
-  color: var(--text-color);
-}
-
-.sensor-unit {
-  font-size: 12px;
-  opacity: 0.7;
-}
+.sensor-icon { font-size: 24px; }
+.sensor-value { font-size: 22px; font-weight: bold; color: var(--text-color); }
+.sensor-unit { font-size: 12px; opacity: 0.7; }
 
 .logo-block {
   display: flex;
@@ -257,12 +215,7 @@ onUnmounted(() => {
   padding: 8px;
 }
 
-.title {
-  font-size: 18px;
-  margin: 8px 0 4px;
-  color: var(--text-color);
-  font-weight: 600;
-}
+.title { font-size: 18px; margin: 8px 0 4px; color: var(--text-color); font-weight: 600; }
 
 .status-badge {
   font-size: 10px;
@@ -272,14 +225,8 @@ onUnmounted(() => {
   background: rgba(0, 0, 0, 0.5);
 }
 
-.status-badge.online {
-  color: #2ecc71;
-  text-shadow: 0 0 5px #2ecc71;
-}
-
-.status-badge.offline {
-  color: #e74c3c;
-}
+.status-badge.online { color: #2ecc71; text-shadow: 0 0 5px #2ecc71; }
+.status-badge.offline { color: #e74c3c; }
 
 .clock {
   font-family: 'Courier New', monospace;
@@ -329,11 +276,18 @@ onUnmounted(() => {
   box-shadow: 0 0 15px rgba(46, 204, 113, 0.5);
 }
 
-.led-status {
-  font-size: 14px;
+.glass-buttons button.pending {
+  background: rgba(255, 193, 7, 0.6);
+  animation: pulse 1s infinite;
 }
 
-/* Paneles */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.led-status { font-size: 14px; }
+
 .glass-buttons.na1 {
   background: rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -363,15 +317,8 @@ onUnmounted(() => {
   backdrop-filter: blur(4px);
 }
 
-.action-btn:hover {
-  background: #2ecc71;
-  color: black;
-}
-
-.action-btn.off:hover {
-  background: #e74c3c;
-  color: white;
-}
+.action-btn:hover { background: #2ecc71; color: black; }
+.action-btn.off:hover { background: #e74c3c; color: white; }
 
 .mode-toggle {
   text-align: center;
@@ -388,27 +335,12 @@ onUnmounted(() => {
   font-size: 14px;
 }
 
-.mode-toggle button:hover {
-  background: #3498db;
-}
+.mode-toggle button:hover { background: #3498db; }
 
 @media (max-width: 500px) {
-  .content {
-    padding: 16px;
-    margin: 12px;
-  }
-  
-  .glass-buttons button {
-    padding: 14px 8px;
-    font-size: 14px;
-  }
-  
-  .clock {
-    font-size: 2rem;
-  }
-  
-  .sensor-value {
-    font-size: 18px;
-  }
+  .content { padding: 16px; margin: 12px; }
+  .glass-buttons button { padding: 14px 8px; font-size: 14px; }
+  .clock { font-size: 2rem; }
+  .sensor-value { font-size: 18px; }
 }
 </style>
