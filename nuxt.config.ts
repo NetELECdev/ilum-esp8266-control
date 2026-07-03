@@ -7,7 +7,21 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'Control Iluminación con ESP8266'
+      title: 'NetELEC Control',
+      link: [
+        { rel: 'manifest', href: '/manifest.json' },
+        { rel: 'apple-touch-icon', href: '/icon-192.png' },
+        { rel: 'icon', type: 'image/png', href: '/icon-192.png' }
+      ],
+      meta: [
+        { name: 'theme-color', content: '#00ffcc' },
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+        { name: 'mobile-web-app-capable', content: 'yes' },
+        { name: 'application-name', content: 'NetELEC' },
+        { name: 'msapplication-TileColor', content: '#00ffcc' },
+        { name: 'msapplication-TileImage', content: '/icon-192.png' }
+      ]
     }
   },
 
