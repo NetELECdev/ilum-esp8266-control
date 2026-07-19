@@ -76,7 +76,7 @@ function createHead(options = {}) {
 const NUXT_PAYLOAD_INLINE = false;
 const NUXT_RUNTIME_PAYLOAD_EXTRACTION = false;
 
-const appHead = {"meta":[{"name":"viewport","content":"width=device-width, initial-scale=1"},{"charset":"utf-8"}],"link":[],"style":[],"script":[],"noscript":[],"title":"Control Iluminación con ESP8266"};
+const appHead = {"meta":[{"name":"viewport","content":"width=device-width, initial-scale=1"},{"charset":"utf-8"},{"name":"theme-color","content":"#00ffcc"},{"name":"apple-mobile-web-app-capable","content":"yes"},{"name":"apple-mobile-web-app-status-bar-style","content":"black-translucent"},{"name":"mobile-web-app-capable","content":"yes"},{"name":"application-name","content":"NetELEC"},{"name":"msapplication-TileColor","content":"#00ffcc"},{"name":"msapplication-TileImage","content":"/icon-192.png"}],"link":[{"rel":"manifest","href":"/manifest.json"},{"rel":"apple-touch-icon","href":"/icon-192.png"},{"rel":"icon","type":"image/png","href":"/icon-192.png"}],"style":[],"script":[],"noscript":[],"title":"NetELEC Control"};
 
 const appRootTag = "div";
 
